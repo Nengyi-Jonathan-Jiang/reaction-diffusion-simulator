@@ -236,8 +236,8 @@ function render(currFrameTime) {
     if(dtl.length > 60) dtl.shift();
     lastFrameTime = currFrameTime;
 
-    canvas.width = canvas.clientWidth,
-    canvas.height = canvas.clientHeight
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
     ctx.fillStyle =  "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
