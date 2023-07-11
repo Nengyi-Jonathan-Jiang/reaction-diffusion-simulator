@@ -3,7 +3,7 @@
 const {
     steps_per_frame, steps_per_frame_display, fDisplay,
     tDisplay, fpsDisplay, useFancyDisplay, paused,
-    diffuseRadius, resetButton
+    diffuseRadius, resetButton, diffuseRadiusDisplay
 } = (function () {
     const masterContainer = addDiv(document.body, 'controls');
 
@@ -28,8 +28,9 @@ const {
     const useFancyDisplay = addSwitch(line4, 'use-fancy-text');
 
     const line5 = addDiv(masterContainer);
-    addText(line5, 'Diffusion Radius: ')
+    addText(line5, 'Diffusion radius: ')
     const diffuseRadius = addSlider(line5, 'diffuse-radius', 1, 8, 1, 4);
+    const diffuseRadiusDisplay = addDisplay(line5, 'diffuse-radius-display');
 
     const resetButton = addButton(masterContainer, 'reset-btn');
     addText(resetButton, "Reset Simulation");
@@ -37,7 +38,7 @@ const {
     return {
         steps_per_frame, steps_per_frame_display, fDisplay,
         tDisplay, fpsDisplay, useFancyDisplay, paused,
-        diffuseRadius, resetButton
+        diffuseRadius, diffuseRadiusDisplay, resetButton
     }
 })();
 
@@ -185,13 +186,10 @@ aux.setUniform('resolution', 'ivec2', ...aux.size);
 
 let started = false;
 
-resetButton.onclick = _ => started = false;
-
 function graphicsStep(){
     aux.gl.bindFramebuffer(aux.gl.FRAMEBUFFER, null);
     aux.setUniform('mode', 'int', 1 + useFancyDisplay.checked);
     aux.render();
-
 }
 
 function clearChangeStep() {
@@ -228,12 +226,14 @@ function initializeStep() {
     [b1, b2] = [b2, b1];
 }
 
-let lastFrameTime = 0, t = 0;
+let lastFrameTime = 0, t = 0, dtl=[];
+resetButton.onclick = _ => { started = false; t = 0 }
 
 function render(currFrameTime) {
     if(isNaN(currFrameTime)) currFrameTime = 0;
     currFrameTime /= 1000;
-    const deltaTime = currFrameTime - lastFrameTime;
+    dtl.push(currFrameTime - lastFrameTime)
+    if(dtl.length > 60) dtl.shift();
     lastFrameTime = currFrameTime;
 
     canvas.width = canvas.clientWidth,
@@ -249,6 +249,7 @@ function render(currFrameTime) {
         for(let i = 0; i < +steps_per_frame.value; i++) {
             clearChangeStep();
 
+            diffuseRadiusDisplay.text = ` ${diffuseRadius.value}`;
             for(let i = 0; i < +diffuseRadius.value; i++)
                 diffuseStep();
 
@@ -264,7 +265,7 @@ function render(currFrameTime) {
 
     tDisplay.text = t.toFixed(1);
     fDisplay.text = feedRate.toFixed(3);
-    fpsDisplay.text = (1 / deltaTime).toFixed(0);
+    fpsDisplay.text = (dtl.length / dtl.reduce((a, b) => a + b)).toFixed(0);
     steps_per_frame_display.text = ` ${steps_per_frame.value}`;
 
     requestAnimationFrame(render)
