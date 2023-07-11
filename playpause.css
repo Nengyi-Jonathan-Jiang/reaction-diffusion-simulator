@@ -1,0 +1,37 @@
+div#controls .play-pause{
+    display: inline-flex;
+}
+
+div#controls .play-pause label {
+    display: block;
+    box-sizing: border-box;
+    width: 0;
+    height: 1em;
+    border-color: transparent transparent transparent white;
+    transition: .1s all;
+    cursor: pointer;
+    border-style: double;
+    border-width: 0 0 0 .8em;
+    transform: translateY(2px);
+    outline: 1px solid white;
+    outline-offset: 4px;
+}
+
+div#controls .play-pause>input {
+    display: none;
+}
+
+div#controls .play-pause>input:checked ~ label {
+    border-style: solid;
+    border-width: .5em 0 .5em .8em;
+}
+
+div#controls .play-pause>span:after{
+    display: block;
+    margin-right: 0.5em;
+    content: "Running";
+}
+
+div#controls .play-pause>input:checked ~ span:after {
+    content: "Stopped";
+}
