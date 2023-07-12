@@ -2,14 +2,17 @@ class GLCanvas {
     /** @param {HTMLCanvasElement} [canvas] */
     constructor(canvas) {
         this.canvas = canvas ?? document.createElement('canvas');
-        this.gl = canvas.getContext('webgl2');
-        if(!this.gl){
-            console.warn('failed to get webgl2 context, falling back to webgl1 (may cause errors)');
-            // noinspection JSValidateTypes
-            this.gl ??= canvas.getContext('webgl');
+        this.gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+
+        let glVersion = this.gl instanceof WebGL2RenderingContext ? 2 : gl instanceof WebGLRenderingContext ? 1 : 0;
+
+        if(glVersion !== 2) {
+            if(glVersion === 1) alert('Your browser does not support WebGL2! This may cause the webpage to not work properly');
+            console.warn('failed to get webgl2 context, falling back to webgl1 (may cause errors).');
         }
-        else {
-            console.log('Using webgl2');
+        if(glVersion === 0){
+            alert('Your browser does not support WebGL! This may cause the webpage to not work properly');
+            console.error('failed to get webgl1 rendering context.');
         }
         const gl = this.gl;
         gl.getExtension('EXT_color_buffer_float');
@@ -160,6 +163,7 @@ class GLCanvas {
             const program = gl.createProgram();
             for (let shader of shaders) gl.attachShader(program, shader);
             gl.linkProgram(program);
+            shaders.forEach(s => gl.deleteShader(s));
             if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
                 return program;
             }
