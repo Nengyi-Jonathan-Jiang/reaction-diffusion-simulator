@@ -8,13 +8,11 @@ class Simulation {
     /** @type {[number, number]}*/
     #size;
 
-    /** @type {WebGLProgram} */ #displayShader;
-    /** @type {WebGLProgram} */ #resetSimulationShader;
-    /** @type {WebGLProgram} */ #beginStepShader;
-    /** @type {WebGLProgram} */ #diffusionShader;
-    /** @type {WebGLProgram} */ #reactionShader;
-
-    /** @type {WebGLProgram[]} */ #allShaders;
+    /** @type {WebGLProgram} */ #shaderProgramResetSimulation;
+    /** @type {WebGLProgram} */ #shaderProgramBeginStep;
+    /** @type {WebGLProgram} */ #shaderProgramDiffusion;
+    /** @type {WebGLProgram} */ #shaderProgramReaction;
+    /** @type {WebGLProgram} */ #shaderProgramDisplay;
 
     get canvas(){
         return this.#renderer.canvas;
@@ -75,16 +73,6 @@ class Simulation {
     }
     get removeRate() { return this.#removeRate }
 
-
-    #diffuseRateB = 0.5;
-    set diffuseRateB(rate){
-        if(isNaN(+rate) || +rate < 0 || +rate > 1)
-            throw new Error("Remove rate must be a real number between 0 and 1");
-        this.#diffuseRateB = +rate;
-    }
-    get diffuseRateB() { return this.#diffuseRateB }
-
-
     #diffuseRadius = 4;
     set diffuseRadius(steps){
         if(isNaN(+steps) || steps <= 0 || steps > 8 || ~~steps !== +steps)
@@ -95,40 +83,35 @@ class Simulation {
 
     //#endregion Simulation Parameters
 
-    static get #SIMULATION_STEP_PHASES(){ return {
-        RENDER_FANCY: 2, RENDER_NORMAL: 1,
-        BEGIN_STEP: -3, DIFFUSION: -1, REACTION: 0,
-        RESET_DATA: -2
-    }}
-
     constructor(simulationWidth = 400, simulationHeight = 400) {
-        const canvas = this.#renderer = new GLCanvas(document.createElement("canvas"));
-        this.#size = canvas.size = [simulationWidth, simulationHeight];
-        const gl = this.#gl = canvas.gl;
+        const renderer = this.#renderer = new GLCanvas(document.createElement("canvas"));
+        this.#size = renderer.size = [simulationWidth, simulationHeight];
+        const gl = this.#gl = renderer.gl;
 
-        this.#allShaders = [
-            this.#displayShader,
-            this.#resetSimulationShader,
-            this.#beginStepShader,
-            this.#diffusionShader,
-            this.#reactionShader,
-        ] = [
-            this.#renderer.createShader(Simulation.shaderCodeDisplay),
-            this.#renderer.createShader(Simulation.shaderCodeResetSimulation),
-            this.#renderer.createShader(Simulation.shaderCodeBeginStep),
-            this.#renderer.createShader(Simulation.shaderCodeDiffusion),
-            this.#renderer.createShader(Simulation.shaderCodeReaction),
-        ];
+        renderer.fragShader = Simulation.shaderCode;
 
         this.#frameBuffers = [
-            canvas.createFrameBuffer(simulationWidth, simulationHeight),
-            canvas.createFrameBuffer(simulationWidth, simulationHeight)
+            renderer.createFrameBuffer(simulationWidth, simulationHeight),
+            renderer.createFrameBuffer(simulationWidth, simulationHeight)
         ];
 
-        for(let shader of this.#allShaders) {
-            canvas.shader = shader;
-            gl.uniform1i(this.#gl.getUniformLocation(canvas.program, "buffer"), 0);
-            canvas.setUniform('resolution', 'ivec2', simulationWidth, simulationHeight);
+        const allShaders = this.allShaders = [
+            this.#shaderProgramResetSimulation,
+            this.#shaderProgramBeginStep,
+            this.#shaderProgramDiffusion,
+            this.#shaderProgramReaction,
+            this.#shaderProgramDisplay
+        ] = [
+            renderer.createShader(Simulation.shaderCodeResetSimulation),
+            renderer.createShader(Simulation.shaderCodeBeginStep),
+            renderer.createShader(Simulation.shaderCodeDiffusion),
+            renderer.createShader(Simulation.shaderCodeReaction),
+            renderer.createShader(Simulation.shaderCodeDisplay)
+        ];
+        for(let shader of allShaders) {
+            renderer.shader = shader;
+            gl.uniform1i(this.#gl.getUniformLocation(renderer.program, "buffer"), 0);
+            renderer.setUniform('resolution', 'ivec2', simulationWidth, simulationHeight);
         }
     }
 
@@ -138,25 +121,25 @@ class Simulation {
         this.#gl.bindTexture(this.#gl.TEXTURE_2D, this.#frameBuffers[1].texture);
     }
 
+    #applyShader(shader){
+        this.canvas.shader = shader;
+        this.#swapBuffers();
+        this.#renderer.render();
+    }
+
     #doSimulationStep(){
-        this.#applyShader(this.#beginStepShader);
+        this.#applyShader(this.#shaderProgramBeginStep);
         for(let i = 0; i < this.#diffuseRadius; i++)
-            this.#applyShader(this.#diffusionShader)
-        this.#applyShader(this.#reactionShader);
+            this.#applyShader(this.#shaderProgramDiffusion);
+        this.#applyShader(this.#shaderProgramReaction);
 
         this.#simulationTime += 0.016;
     }
 
     forceResetSimulation(){
-        this.#applyShader(this.#resetSimulationShader);
+        this.#applyShader(this.#shaderProgramResetSimulation);
         this.#simulationTime = 0;
         this.#shouldResetSimulation = false;
-    }
-
-    #applyShader(shader) {
-        this.#renderer.shader = shader;
-        this.#swapBuffers();
-        this.#renderer.render();
     }
 
     simulateNSteps(n=10) {
@@ -165,29 +148,144 @@ class Simulation {
     }
 
     renderResults(){
-        this.#renderer.shader = this.#displayShader;
         this.#gl.bindFramebuffer(this.#gl.FRAMEBUFFER, null);
-        this.#renderer.render();
+        this.#applyShader(this.#shaderProgramDisplay);
     }
 
     update() {
-        this.#updateUniforms();
-
+        this.updateUniforms();
         if (this.#shouldResetSimulation)
             this.forceResetSimulation();
-
         this.simulateNSteps(this.#nStepsPerFrame);
         this.renderResults();
     }
 
-    #updateUniforms() {
-        this.#renderer.shader = this.#reactionShader;
-        this.#renderer.setUniform('feedRate', 'float', this.#feedRate);
-        this.#renderer.setUniform('removeRate', 'float', this.#removeRate);
-        this.#renderer.shader = this.#diffusionShader;
-        this.#renderer.setUniform('diffuseRateB', 'float', this.#diffuseRateB);
+    updateUniforms() {
+        for(let shader of this.allShaders) {
+            this.#renderer.shader = shader;
+            this.#renderer.setUniform('feedRate', 'float', this.#feedRate);
+            this.#renderer.setUniform('removeRate', 'float', this.#removeRate);
+        }
     }
 }
+
+Simulation.shaderCode = `
+    precision highp float;
+    precision highp sampler2D;
+    
+    in vec2 uv;
+    out vec4 fragColor;
+    
+    uniform ivec2 resolution;
+    uniform float feedRate;
+    uniform float removeRate;
+    uniform sampler2D buffer;
+    
+    uniform int mode;
+    const float diffuseRateA = 1.;
+    const float diffuseRateB = 0.5;
+    
+    vec2 initialValues(ivec2 pixel){
+        int x = pixel.x, y = pixel.y;
+       
+        return 
+            abs(x / 4 - abs(y)) + abs(y) <= 5 
+              ? vec2(1, 1)
+              : vec2(1, 0); 
+    }
+    
+    vec2 getUV(ivec2 pixel){
+        vec2 fPixel = vec2(pixel) + 0.5;
+        vec2 uv = fPixel / vec2(resolution.xy);
+        vec2 res = mod(uv, 1.0);
+        if(res.x <= 0.) res.x += 1.;
+        if(res.y <= 0.) res.y += 1.;
+        return res;
+    }
+    
+    vec4 valueAt(ivec2 pixel){
+        return texture(buffer, getUV(pixel));
+    }
+    
+    vec4 update(ivec2 pixel){
+        vec4 curr = valueAt(pixel);
+        float a = curr.x;
+        float b = curr.y;
+       
+        vec2 change;
+        
+        // The reaction: 2B + A -> 3B 
+        change += a * b * b * vec2(-1, 1);
+        
+        // Feeding A
+        change += feedRate * vec2(1.0 - a, -b);
+        
+        // Removing B
+        change -= removeRate * vec2(0, b);
+        
+        return vec4(
+            clamp(curr.xy + change, 0.0, 1.0),
+            curr.zw + change
+        );
+    }
+    
+    void main(){
+        ivec2 pixel = ivec2(uv * vec2(resolution));
+    
+        vec4 currVal = valueAt(pixel);
+        
+        if(mode == -3){
+            fragColor = vec4(currVal.xy, 0, 0);
+            return;
+        }
+    
+        if(mode == -2){
+            // initialize
+            fragColor = vec4(initialValues(pixel - resolution.xy / 2), 0, 1);
+            return;
+        }
+        
+        if(mode == -1){
+            // gaussian blur 
+            float tWeight = 1.5;
+            vec2 wSum = 
+                0.25 * (
+                    valueAt(pixel + ivec2(1, 0)).xy
+                  + valueAt(pixel + ivec2(-1,0)).xy
+                  + valueAt(pixel + ivec2(0, 1)).xy
+                  + valueAt(pixel + ivec2(0,-1)).xy
+                ) + 0.125 * (
+                    valueAt(pixel + ivec2( 1, 1)).xy
+                  + valueAt(pixel + ivec2(-1, 1)).xy
+                  + valueAt(pixel + ivec2( 1,-1)).xy
+                  + valueAt(pixel + ivec2(-1,-1)).xy
+                );
+            
+            vec2 diffuse = (wSum / tWeight - currVal.xy) * vec2(diffuseRateA, diffuseRateB);
+            
+            fragColor = currVal + diffuse.xyxy;
+            return;
+        }
+    
+        if(mode == 0){
+            fragColor = update(pixel);
+            return;
+        }
+        
+        float a = currVal.x;
+        float b = currVal.y;
+        float deltaA = currVal.z;
+        float deltaB = currVal.w;
+        float diff = a - b;
+        
+        fragColor = vec4(
+            a * pow(deltaB * 40., 2.), 
+            b + pow(deltaB * 40., 2.),
+            1. - a,
+        1) + pow(deltaB * 40., 2.);
+    }
+`
+
 
 Simulation.shaderCodeResetSimulation = `
     precision highp float;
@@ -200,7 +298,7 @@ Simulation.shaderCodeResetSimulation = `
     
     vec2 initialValues(ivec2 pixel){
         int x = pixel.x, y = pixel.y;
-        return abs(x / 4 - abs(y)) + abs(y) <= 10 ? vec2(1, 1) : vec2(1, 0); 
+        return abs(x / 4 - abs(y)) + abs(y) <= 5 ? vec2(1, 1) : vec2(1, 0); 
     }
     
     void main(){
@@ -253,7 +351,7 @@ Simulation.shaderCodeDiffusion = `
     uniform sampler2D buffer;
     
     const float diffuseRateA = 1.;
-    uniform float diffuseRateB;
+    const float diffuseRateB = 0.5;
   
     vec2 getUV(ivec2 pixel){
         vec2 fPixel = vec2(pixel) + 0.5;
@@ -347,6 +445,7 @@ Simulation.shaderCodeReaction = `
     }
 `
 
+
 Simulation.shaderCodeDisplay = `
     precision highp float;
     precision highp sampler2D;
@@ -383,8 +482,9 @@ Simulation.shaderCodeDisplay = `
         
         fragColor = vec4(
             a * pow(deltaB * 40., 2.), 
-            b + pow(deltaB * 40., 2.) + .2 * (1. - a),
-            (1. - a) - 0.5 * (b + pow(deltaB * 40., 2.)),
+            b + pow(deltaB * 40., 2.),
+            1. - a,
         1) + pow(deltaB * 40., 2.);
     }
 `
+

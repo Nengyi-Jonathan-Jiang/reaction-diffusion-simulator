@@ -71,7 +71,7 @@ div#controls input[type=range]{
     appearance: none;
     -moz-appearance: none;
     background: transparent;
-    width: 5em;
+    width: 10em;
 }
 div#controls input[type=range]::-webkit-slider-thumb{
     -webkit-appearance: none;

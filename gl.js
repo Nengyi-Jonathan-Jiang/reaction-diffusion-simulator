@@ -6,11 +6,11 @@ class GLCanvas {
 
         let glVersion = this.gl instanceof WebGL2RenderingContext ? 2 : gl instanceof WebGLRenderingContext ? 1 : 0;
 
-        if(glVersion !== 2) {
-            if(glVersion === 1) alert('Your browser does not support WebGL2! This may cause the webpage to not work properly');
+        if (glVersion !== 2) {
+            if (glVersion === 1) alert('Your browser does not support WebGL2! This may cause the webpage to not work properly');
             console.warn('failed to get webgl2 context, falling back to webgl1 (may cause errors).');
         }
-        if(glVersion === 0){
+        if (glVersion === 0) {
             alert('Your browser does not support WebGL! This may cause the webpage to not work properly');
             console.error('failed to get webgl1 rendering context.');
         }
@@ -18,9 +18,7 @@ class GLCanvas {
         gl.getExtension('EXT_color_buffer_float');
         gl.getExtension('OES_texture_float_linear');
 
-        /**
-         * @type {WebGLProgram}
-         */
+        /** @type {WebGLProgram} */
         this.program = null;
 
         /** @private */
@@ -28,7 +26,7 @@ class GLCanvas {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]), gl.STATIC_DRAW);
 
-        this.shader = `
+        this.fragShader = `
             precision mediump float;
             in vec2 uv;
             out vec4 fragColor;
@@ -38,7 +36,7 @@ class GLCanvas {
         `;
     }
 
-    createFrameBuffer(targetTextureWidth, targetTextureHeight, type){
+    createFrameBuffer(targetTextureWidth, targetTextureHeight, type) {
         const gl = this.gl;
 
         const texture = gl.createTexture();
@@ -46,7 +44,7 @@ class GLCanvas {
 
         type ||= gl.UNSIGNED_BYTE;
 
-        switch (type){
+        switch (type) {
             case gl.FLOAT:
                 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, targetTextureWidth, targetTextureHeight, 0, gl.RGBA, type, null);
                 break;
@@ -74,21 +72,31 @@ class GLCanvas {
      * @param {"float"|"int"|"vec2"|"ivec2"|"vec3"|"vec4"|"mat2"|"mat3"|"mat4"} type
      * @param {number} data
      */
-    setUniform(name, type, ...data){
+    setUniform(name, type, ...data) {
         const gl = this.gl;
         let loc = gl.getUniformLocation(this.program, name);
 
-        switch(type){
-            case "float": return gl.uniform1f(loc, data[0]);
-            case "int": return gl.uniform1i(loc, data[0]);
-            case "vec2":  return gl.uniform2f(loc, ...data);
-            case "ivec2":  return gl.uniform2i(loc, ...data);
-            case "vec3":  return gl.uniform3f(loc, ...data);
-            case "vec4":  return gl.uniform4f(loc, ...data);
-            case "mat2":  return gl.uniformMatrix2fv(loc, false, data);
-            case "mat3":  return gl.uniformMatrix3fv(loc, false, data);
-            case "mat4":  return gl.uniformMatrix4fv(loc, false, data);
-            default: throw new TypeError(`WEBGL ERROR: Cannot set uniform of type ${type}`);
+        switch (type) {
+            case "float":
+                return gl.uniform1f(loc, data[0]);
+            case "int":
+                return gl.uniform1i(loc, data[0]);
+            case "vec2":
+                return gl.uniform2f(loc, ...data);
+            case "ivec2":
+                return gl.uniform2i(loc, ...data);
+            case "vec3":
+                return gl.uniform3f(loc, ...data);
+            case "vec4":
+                return gl.uniform4f(loc, ...data);
+            case "mat2":
+                return gl.uniformMatrix2fv(loc, false, data);
+            case "mat3":
+                return gl.uniformMatrix3fv(loc, false, data);
+            case "mat4":
+                return gl.uniformMatrix4fv(loc, false, data);
+            default:
+                throw new TypeError(`WEBGL ERROR: Cannot set uniform of type ${type}`);
         }
     }
 
@@ -103,9 +111,21 @@ class GLCanvas {
         [this.canvas.width, this.canvas.height] = size;
         this.gl.viewport(-size[0], -size[1], size[0] * 2, size[1] * 2);
     }
-    get size() { return [this.canvas.width, this.canvas.height] }
 
-    set shader(fragSource){
+    get size() {
+        return [this.canvas.width, this.canvas.height]
+    }
+
+    set fragShader(fragSource) {
+        this.shader = this.createShader(fragSource);
+    }
+
+
+    /**
+     * @param {string} fragSource
+     * @return {WebGLProgram}
+     */
+    createShader(fragSource) {
         const vertSource = `
             in vec4 a_position;
             out vec2 uv;
@@ -114,8 +134,14 @@ class GLCanvas {
                 uv = vec2(a_position.x, a_position.y);
             }
         `
-        /** @private */
-        this.program = GLCanvas.createProgramFromSources(this.gl, vertSource, fragSource);
+        return GLCanvas.createProgramFromSources(this.gl, vertSource, fragSource);
+    }
+
+    /** @param {WebGLProgram} program */
+    set shader(program) {
+        if(this.program === program) return;
+
+        this.program = program;
         const gl = this.gl;
 
         gl.enableVertexAttribArray(gl.getAttribLocation(this.program, 'a_position'));
@@ -145,11 +171,7 @@ class GLCanvas {
             if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
                 return shader;
             }
-            console.log(
-                "*** Error compiling shader '" + shader + "':" +
-                gl.getShaderInfoLog(shader) + `\n` +
-                shaderSource.split('\n').map((l, i) => (i + 1) + ':' + l).join('\n')
-            );
+            console.log("*** Error compiling shader '" + shader + "':" + gl.getShaderInfoLog(shader) + `\n` + shaderSource.split('\n').map((l, i) => (i + 1) + ':' + l).join('\n'));
             gl.deleteShader(shader);
             return null;
         }
@@ -171,9 +193,7 @@ class GLCanvas {
             gl.deleteProgram(program);
             return null;
         }
-        return createProgram(gl,
-            createShader(gl, vertSource, gl.VERTEX_SHADER),
-            createShader(gl, fragSource, gl.FRAGMENT_SHADER)
-        );
+
+        return createProgram(gl, createShader(gl, vertSource, gl.VERTEX_SHADER), createShader(gl, fragSource, gl.FRAGMENT_SHADER));
     }
 }

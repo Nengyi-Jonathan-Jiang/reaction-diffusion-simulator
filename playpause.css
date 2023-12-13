@@ -1,5 +1,6 @@
 div#controls .play-pause{
     display: inline-flex;
+    margin-right: 10px;
 }
 
 div#controls .play-pause label {
