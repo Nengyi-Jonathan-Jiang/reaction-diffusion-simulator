@@ -72,6 +72,8 @@ resetButton.onclick = _ => {
     simulation.resetSimulation();
 }
 
+console.log(crossOriginIsolated);
+
 function render() {
     fpsCounter.update();
 

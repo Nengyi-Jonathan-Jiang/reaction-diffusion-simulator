@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@ffmpeg/core": "^0.12.4",
+    "@ffmpeg/ffmpeg": "^0.12.7",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "ffmpeg.js": "^4.2.9003"
+  }
+}

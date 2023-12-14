@@ -11,9 +11,39 @@
         <script src='ui.js'></script>
         <script src='simulation.js'></script>
         <script src='FPSCounter.js'></script>
+
+        <script src="lib/ffmpeg.dev.js"></script>
     </head>
     <body>
         <canvas id="canvas"></canvas>
         <script src="script.js"></script>
+        <script>
+            const { createFFmpeg } = FFmpeg;
+            const ffmpeg = createFFmpeg({
+                corePath: "https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js",
+                log: true,
+            });
+            
+            ffmpeg.load();
+
+            const transcode = async ({ target: { files } }) => {
+                const inputPaths = [];
+                for (const file of files) {
+                    const { name } = file;
+                    ffmpeg.FS('writeFile', name, await fetchFile(file));
+                    inputPaths.push(`file ${name}`);
+                }
+                ffmpeg.FS('writeFile', 'concat_list.txt', inputPaths.join('\n'));
+                await ffmpeg.run('-f', 'concat', '-safe', '0', '-i', 'concat_list.txt', 'output.mp4');
+                message.innerHTML = "Complete Concating";
+                const data = ffmpeg.FS('readFile', 'output.mp4');
+                const video = document.getElementById("output-video");
+                video.src = URL.createObjectURL(
+                    new Blob([data.buffer], {
+                        type: "video/mp4"
+                    })
+                );
+            };
+        </script>
     </body>
 </html>
