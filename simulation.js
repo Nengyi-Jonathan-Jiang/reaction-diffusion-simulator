@@ -94,13 +94,6 @@ class Simulation {
     get diffuseRadius() { return this.#diffuseRadius }
 
     //#endregion Simulation Parameters
-
-    static get #SIMULATION_STEP_PHASES(){ return {
-        RENDER_FANCY: 2, RENDER_NORMAL: 1,
-        BEGIN_STEP: -3, DIFFUSION: -1, REACTION: 0,
-        RESET_DATA: -2
-    }}
-
     constructor(simulationWidth = 400, simulationHeight = 400) {
         const canvas = this.#renderer = new GLCanvas(document.createElement("canvas"));
         this.#size = canvas.size = [simulationWidth, simulationHeight];
@@ -166,6 +159,7 @@ class Simulation {
 
     renderResults(){
         this.#renderer.shader = this.#displayShader;
+        this.#renderer.setUniform("displayMode", "int", this.#useFancyRendering ? 1 : 0)
         this.#gl.bindFramebuffer(this.#gl.FRAMEBUFFER, null);
         this.#renderer.render();
     }
@@ -356,6 +350,7 @@ Simulation.shaderCodeDisplay = `
     
     uniform ivec2 resolution;
     uniform sampler2D buffer;
+    uniform int displayMode;
 
     vec2 getUV(ivec2 pixel){
         vec2 fPixel = vec2(pixel) + 0.5;
@@ -380,11 +375,15 @@ Simulation.shaderCodeDisplay = `
         float deltaA = currVal.z;
         float deltaB = currVal.w;
         float diff = a - b;
-        
-        fragColor = vec4(
-            a * pow(deltaB * 40., 2.), 
-            b + pow(deltaB * 40., 2.) + .2 * (1. - a),
+
+        fragColor = displayMode == 1 ? vec4( 
+            a * pow(deltaB * 40., 2.),
+            b + pow(deltaB * 40., 2.) + .1 * (1. - a),
             (1. - a) - 0.5 * (b + pow(deltaB * 40., 2.)),
-        1) + pow(deltaB * 40., 2.);
+        1) + pow(deltaB * 40., 2.) : vec4(
+            0,   
+            pow(1. - a, 2.),
+            1. - pow(1. - b, 4.),
+        1);
     }
 `
