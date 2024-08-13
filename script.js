@@ -1,10 +1,19 @@
 const {
-    steps_per_frame, steps_per_frame_display,
-    tDisplay, fpsDisplay, useFancyDisplay, paused,
-    diffuseRadius, resetButton, diffuseRadiusDisplay,
-    feedRate, feedRateDisplay,
-    removeRate, removeRateDisplay,
-    diffuseRateB, diffuseRateBDisplay
+    steps_per_frame,
+    steps_per_frame_display,
+    tDisplay,
+    fpsDisplay,
+    useFancyDisplay,
+    paused,
+    diffuseRadius,
+    resetButton,
+    diffuseRadiusDisplay,
+    feedRate,
+    feedRateDisplay,
+    removeRate,
+    removeRateDisplay,
+    diffuseRateB,
+    diffuseRateBDisplay
 } = (function () {
     const masterContainer = addDiv(document.body, 'controls');
 
@@ -37,33 +46,43 @@ const {
 
     const line5 = addDiv(masterContainer);
     addText(line5, 'Diffusion radius: ')
-    const diffuseRadius = addSlider(line5, 'diffuse-radius', 1, 8, 1, (4, 1));
+    const diffuseRadius = addSlider(line5, 'diffuse-radius', 1, 8, 1, 4);
     const diffuseRadiusDisplay = addDisplay(line5, 'diffuse-radius-display');
 
     const line6 = addDiv(masterContainer);
     addText(line6, 'Relative diffusion rate: ')
-    const diffuseRateB = addSlider(line6, 'diffuse-radius', .2, .8, 0.001, (0.5, 0.688));
+    const diffuseRateB = addSlider(line6, 'diffuse-radius', .2, .8, 0.001, 0.5);
     const diffuseRateBDisplay = addDisplay(line6, 'diffuse-radius-display');
 
     const line7 = addDiv(masterContainer);
     addText(line7, 'Feed rate: ')
-    const feedRate = addSlider(line7, 'feed-rate', 0.0, 0.1, 0.001, (0.02, 0.036));
+    const feedRate = addSlider(line7, 'feed-rate', 0.0, 0.1, 0.001, 0.02);
     const feedRateDisplay = addDisplay(line7, 'feed-rate-display');
 
     const line8 = addDiv(masterContainer);
     addText(line8, 'Remove rate: ')
-    const removeRate = addSlider(line8, 'remove-rate', 0.03, 0.09, 0.001, (0.06, 0.057));
+    const removeRate = addSlider(line8, 'remove-rate', 0.03, 0.09, 0.001, 0.06);
     const removeRateDisplay = addDisplay(line8, 'remove-rate-display');
 
     const resetButton = addButton(masterContainer, 'reset-btn');
     addText(resetButton, "Reset Simulation");
 
     return {
-        steps_per_frame, steps_per_frame_display,
-        tDisplay, fpsDisplay, useFancyDisplay, paused, feedRate, feedRateDisplay,
-        diffuseRadius, diffuseRadiusDisplay, resetButton,
-        removeRate, removeRateDisplay,
-        diffuseRateB, diffuseRateBDisplay
+        steps_per_frame,
+        steps_per_frame_display,
+        tDisplay,
+        fpsDisplay,
+        useFancyDisplay,
+        paused,
+        feedRate,
+        feedRateDisplay,
+        diffuseRadius,
+        diffuseRadiusDisplay,
+        resetButton,
+        removeRate,
+        removeRateDisplay,
+        diffuseRateB,
+        diffuseRateBDisplay
     }
 })();
 
@@ -87,7 +106,7 @@ function render() {
     fpsCounter.update();
 
     [canvas.width, canvas.height] = [canvas.clientWidth, canvas.clientHeight];
-    ctx.fillStyle =  "#000";
+    ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     simulation.nStepsPerFrame = +steps_per_frame.value;
@@ -97,8 +116,7 @@ function render() {
     simulation.removeRate = +removeRate.value;
     simulation.useFancyRendering = useFancyDisplay.checked;
 
-    if(!paused.checked)
-        simulation.update();
+    if (!paused.checked) simulation.update();
 
     ctx.drawImage(simulation.canvas, 0, 0, simulation.width, simulation.height);
 
