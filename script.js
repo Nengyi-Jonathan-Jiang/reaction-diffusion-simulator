@@ -131,4 +131,9 @@ function render() {
     requestAnimationFrame(render)
 }
 
+canvas.ondblclick = _ => {
+    // noinspection JSIgnoredPromiseFromCall
+    document.body.requestFullscreen();
+}
+
 render()
