@@ -105,7 +105,7 @@ console.log(crossOriginIsolated);
 function render() {
     fpsCounter.update();
 
-    [canvas.width, canvas.height] = [canvas.clientWidth, canvas.clientHeight];
+    [canvas.width, canvas.height] = [simulation.width, simulation.height];
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -118,7 +118,7 @@ function render() {
 
     if (!paused.checked) simulation.update();
 
-    ctx.drawImage(simulation.canvas, 0, 0, simulation.width, simulation.height);
+    ctx.drawImage(simulation.canvas, 0, 0);
 
     tDisplay.text = simulation.simulationTime.toFixed(1);
     fpsDisplay.text = `${fpsCounter.FPS.toFixed(0)}`;

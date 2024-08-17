@@ -36,6 +36,7 @@ class Simulation {
     }
 
     #simulationTime = 0;
+    /** @type {number} */
     get simulationTime(){
         return this.#simulationTime;
     }

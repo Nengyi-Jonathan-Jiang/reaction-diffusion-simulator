@@ -9,13 +9,33 @@
     box-sizing: border-box;
 }
 
-canvas#canvas{
+body {
+    background-color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100vw;
     height: 100vh;
     position: absolute;
     top: 0;
     left: 0;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
+
+canvas#canvas {
+    max-width: 1200px;
+    max-height: 600px;
+
+    width: calc(min(50vw, 100vh) * 2);
+    height: calc(min(50vw, 100vh));
+
+    box-shadow: 0 0 2px white;
+}
+
+
 div#controls{
     position: absolute;
     top: 0;
@@ -34,7 +54,8 @@ div#controls *{
     cursor: default;
     outline: none;
     text-shadow: 1px 1px 8px black;
-    font-size: 18px;
+    font-size: min(18px, 3.2vw);
+    white-space: nowrap;
 }
 div#controls>*{
     padding: 3px;
